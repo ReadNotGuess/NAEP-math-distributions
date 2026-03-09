@@ -455,11 +455,38 @@ function drawChart(stateName) {
   drawArea(d13, '#3b6ea5', 'rgba(59,110,165,0.15)');
   drawArea(d24, '#b41e1e', 'rgba(180,30,30,0.15)');
 
+  // Curve labels — 2024 on left tail, 2013 on right tail, at a fixed readable height
+  function percentileIdx(data, p) {
+    const total = data.reduce((a, b) => a + b, 0);
+    if (total === 0) return 0;
+    const target = total * p / 100;
+    let cumul = 0;
+    for (let i = 0; i < data.length; i++) {
+      cumul += data[i] || 0;
+      if (cumul >= target) return i;
+    }
+    return X_MAX_IDX;
+  }
+
+  ctx.font = `bold 11px 'Syne', sans-serif`;
+
+  // Place labels at 35% down from top of plot — well above the curves at the tails
+  const labelFixedY = padT + plotH * 0.35;
+
+  // 2024: x at 10th percentile
+  const i24 = percentileIdx(d24, 10);
+  ctx.fillStyle = '#b41e1e';
+  ctx.textAlign = 'center';
+  ctx.fillText('2024', idxToX(i24), labelFixedY);
+
+  // 2013: x at 90th percentile
+  const i13 = percentileIdx(d13, 90);
+  ctx.fillStyle = '#3b6ea5';
+  ctx.textAlign = 'center';
+  ctx.fillText('2013', idxToX(i13), labelFixedY);
+
   // Mean lines
   const mean24 = sd.avg2024;
-  const mean13 = sd.avg2013;
-  function scoreToX(s) { return padL + ((s / 10) / X_MAX_IDX) * plotW; }
-
   [{ mean: mean13, color: '#3b6ea5' }, { mean: mean24, color: '#b41e1e' }].forEach(({mean, color}) => {
     const mx = scoreToX(mean);
     ctx.setLineDash([4, 3]);
@@ -473,8 +500,6 @@ function drawChart(stateName) {
   });
 
   // Bracket annotation
-  const mx24 = scoreToX(mean24);
-  const mx13 = scoreToX(mean13);
   const diff = mean24 - mean13;
   const diffLabel = (diff >= 0 ? '+' : '') + diff.toFixed(1);
   const midX = (mx24 + mx13) / 2;
