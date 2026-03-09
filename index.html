@@ -455,7 +455,14 @@ function drawChart(stateName) {
   drawArea(d13, '#3b6ea5', 'rgba(59,110,165,0.15)');
   drawArea(d24, '#b41e1e', 'rgba(180,30,30,0.15)');
 
-  // Curve labels — 2024 on left tail, 2013 on right tail, at a fixed readable height
+  // Mean values and x positions
+  const mean13 = sd.avg2013;
+  const mean24 = sd.avg2024;
+  function scoreToX(s) { return padL + ((s / 10) / X_MAX_IDX) * plotW; }
+  const mx24 = scoreToX(mean24);
+  const mx13 = scoreToX(mean13);
+
+  // Curve labels — sides depend on direction of change
   function percentileIdx(data, p) {
     const total = data.reduce((a, b) => a + b, 0);
     if (total === 0) return 0;
@@ -469,26 +476,21 @@ function drawChart(stateName) {
   }
 
   ctx.font = `bold 11px 'Syne', sans-serif`;
-
-  // Place labels at 35% down from top of plot — well above the curves at the tails
+  const isGain = mean24 > mean13;
   const labelFixedY = padT + plotH * 0.35;
 
-  // 2024: x at 10th percentile
-  const i24 = percentileIdx(d24, 10);
+  const i24 = percentileIdx(d24, isGain ? 90 : 10);
   ctx.fillStyle = '#b41e1e';
   ctx.textAlign = 'center';
   ctx.fillText('2024', idxToX(i24), labelFixedY);
 
-  // 2013: x at 90th percentile
-  const i13 = percentileIdx(d13, 90);
+  const i13 = percentileIdx(d13, isGain ? 10 : 90);
   ctx.fillStyle = '#3b6ea5';
   ctx.textAlign = 'center';
   ctx.fillText('2013', idxToX(i13), labelFixedY);
 
   // Mean lines
-  const mean24 = sd.avg2024;
-  [{ mean: mean13, color: '#3b6ea5' }, { mean: mean24, color: '#b41e1e' }].forEach(({mean, color}) => {
-    const mx = scoreToX(mean);
+  [{ mean: mean13, mx: mx13, color: '#3b6ea5' }, { mean: mean24, mx: mx24, color: '#b41e1e' }].forEach(({mx, color}) => {
     ctx.setLineDash([4, 3]);
     ctx.strokeStyle = color;
     ctx.lineWidth = 1.5;
